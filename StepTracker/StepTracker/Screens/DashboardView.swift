@@ -8,32 +8,6 @@
 import Charts
 import SwiftUI
 
-enum HealthMetricContext: CaseIterable, Identifiable {
-    case steps, weight, workouts
-    
-    var id: Self { self }
-    var title: String {
-        switch self {
-        case .steps:
-            "Steps"
-        case .weight:
-            "Weight"
-        case .workouts:
-            "Workouts"
-        }
-    }
-    var tint: Color {
-        switch self {
-        case .steps:
-            .pink
-        case .weight:
-            .indigo
-        case .workouts:
-            .green
-        }
-    }
-}
-
 struct DashboardView: View {
     @AppStorage(HealthKitManager.HasSeenPermissionSheetKey)
     private var hasSeenPermissionSheet = false
@@ -75,22 +49,43 @@ struct DashboardView: View {
                         }
                     }.pickerStyle(.segmented)
                     
-                    StepBarChart(
-                        selectedStat: .steps,
-                        chartData: hkManager.stepData
-                    )
-                    
-                    StepPieChart(
-                        chartData:
-                            ChartMath.averageWeekDayCount(
-                                for: hkManager.stepData
+                    switch selectedStat {
+                    case .steps:
+                        StepBarChart(
+                            selectedStat: .steps,
+                            chartData: hkManager.stepData
+                        )
+                        
+                        StepPieChart(
+                            chartData:
+                                ChartMath.averageWeekDayCount(
+                                    for: hkManager.stepData
+                                )
+                        )
+                    case .weight:
+                        WeightLineChart(
+                            selectedStat: .weight,
+                            chartData: hkManager.weightData
+                        )
+                        
+                        WeightDifferenceBarChart(
+                            chartData: ChartMath.averageDailyWeightsDiffs(
+                                for: hkManager.weightDiffData
                             )
-                    )
+                        )
+                    case .workouts:
+                        ContentUnavailableView(
+                            "Feature Not Ready",
+                            systemImage: "scalemass.fill"
+                        )
+                    }
                 }
             }
             .padding()
             .task {
                 await hkManager.fetchStepCount()
+                await hkManager.fetchWeight()
+                await hkManager.fetchWeightDiffs()
                 isShowingPermissionSheet = !hasSeenPermissionSheet
             }
             .navigationTitle("Dasboard")
