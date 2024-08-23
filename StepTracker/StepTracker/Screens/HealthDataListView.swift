@@ -10,6 +10,9 @@ import SwiftUI
 struct HealthDataListView: View {
     let metric: HealthMetricContext
     
+    @Environment(HealthKitManager.self)
+    private var hkManager
+    
     @State
     private var isShowingSheet = false
     
@@ -19,12 +22,23 @@ struct HealthDataListView: View {
     @State
     private var valueToAdd = ""
     
+    var data: [HealthMetric] {
+        switch metric {
+        case .steps:
+            return hkManager.stepData
+        case .weight:
+            return hkManager.weightData
+        case .workouts:
+            return []
+        }
+    }
+    
     var body: some View {
-        List(0..<28) { i in
+        List(data.reversed()) { healthMetric in
             HStack {
-                Text(Date(), format: .dateTime.month().day().year())
+                Text(healthMetric.date, format: .dateTime.month().day().year())
                 Spacer()
-                Text(1000,format:
+                Text(healthMetric.value,format:
                         .number
                         .precision(
                         .fractionLength(metricPercision())
@@ -68,7 +82,28 @@ struct HealthDataListView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add Data") {
-                        // TODO: Implement
+                        Task {
+                            switch metric {
+                            case .steps:
+                                await hkManager.addStepData(
+                                    for: dateToAdd,
+                                    value: Double(valueToAdd)!
+                                )
+                                await hkManager.fetchStepCount()
+                                isShowingSheet = false
+                            case .weight:
+                                await hkManager.addWeightData(
+                                    for: dateToAdd,
+                                    value: Double(valueToAdd)!
+                                )
+                                await hkManager.fetchWeight()
+                                await hkManager.fetchWeightDiffs()
+                                isShowingSheet = false
+                            case .workouts:
+                                // TODO: Implement
+                                return
+                            }
+                        }
                     }
                 }
             }
@@ -97,11 +132,13 @@ struct HealthDataListView: View {
 #Preview("Steps") {
     NavigationStack {
         HealthDataListView(metric: .steps)
+            .environment(HealthKitManager())
     }
 }
 
 #Preview("Weight") {
     NavigationStack {
         HealthDataListView(metric: .weight)
+            .environment(HealthKitManager())
     }
 }

@@ -148,4 +148,30 @@ final class HealthKitManager {
             fatalError(error.localizedDescription)
         }
     }
+    
+    func addStepData(for date: Date, value: Double) async  {
+        let stepQuantity = HKQuantity(unit: .count(), doubleValue: value)
+        let stepSample = HKQuantitySample(
+            type: .init(.stepCount),
+            quantity: stepQuantity,
+            start: date,
+            end: date
+        )
+        
+        // TODO: Properly handle errors
+        try! await store.save(stepSample)
+    }
+    
+    func addWeightData(for date: Date, value: Double) async {
+        let weightQuantity = HKQuantity(unit: .pound(), doubleValue: value)
+        let weightSample = HKQuantitySample(
+            type: .init(.bodyMass),
+            quantity: weightQuantity,
+            start: date,
+            end: date
+        )
+        
+        // TODO: Properly handle errors
+        try! await store.save(weightSample)
+    }
 }
