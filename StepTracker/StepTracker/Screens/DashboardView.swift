@@ -83,9 +83,13 @@ struct DashboardView: View {
             }
             .padding()
             .task {
-                await hkManager.fetchStepCount()
-                await hkManager.fetchWeight()
-                await hkManager.fetchWeightDiffs()
+                do {
+                    try await hkManager.fetchStepCount()
+                    try await hkManager.fetchWeight()
+                    try await hkManager.fetchWeightDiffs()
+                } catch {
+                    
+                }
                 isShowingPermissionSheet = !hasSeenPermissionSheet
             }
             .navigationTitle("Dasboard")

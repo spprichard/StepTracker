@@ -8,6 +8,13 @@
 import HealthKit
 import Observation
 
+enum STError: Error {
+    case healthKitAccessNotDetermined
+    case sharingDenied(quantityType: String)
+    case noData
+    case failedCompletingRequest
+}
+
 @Observable
 final class HealthKitManager {
     private let calendar = Calendar.current
@@ -29,7 +36,11 @@ final class HealthKitManager {
     
     static let HasSeenPermissionSheetKey = "hasSeenPermissionSheet"
     
-    func fetchStepCount() async {
+    func fetchStepCount() async throws {
+        guard store.authorizationStatus(for: HKQuantityType(.stepCount)) != .notDetermined else {
+            throw STError.healthKitAccessNotDetermined
+        }
+        
         let today = calendar.startOfDay(for: .now)
         guard let endDate = calendar.date(byAdding: .day, value: 1, to: today) else {
             fatalError("Failed creating endDate")
@@ -63,13 +74,18 @@ final class HealthKitManager {
                     value: stat.sumQuantity()?.doubleValue(for: .count()) ?? 0
                 )
             }
-        } catch let error {
-            // TODO: Properly Handle
-            fatalError(error.localizedDescription)
+        } catch HKError.errorNoData {
+            throw STError.noData
+        } catch {
+            throw STError.failedCompletingRequest
         }
     }
     
-    func fetchWeight() async {
+    func fetchWeight() async throws {
+        guard store.authorizationStatus(for: HKQuantityType(.bodyMass)) != .notDetermined else {
+            throw STError.healthKitAccessNotDetermined
+        }
+        
         let today = calendar.startOfDay(for: .now)
         guard let endDate = calendar.date(byAdding: .day, value: 1, to: today) else {
             fatalError("Failed creating endDate")
@@ -103,13 +119,19 @@ final class HealthKitManager {
                     value: stat.mostRecentQuantity()?.doubleValue(for: .pound()) ?? 0
                 )
             }
-        } catch let error {
-            // Properly Handle
-            fatalError(error.localizedDescription)
+        } catch HKError.errorNoData {
+            throw STError.noData
+        }
+        catch {
+            throw STError.failedCompletingRequest
         }
     }
     
-    func fetchWeightDiffs() async {
+    func fetchWeightDiffs() async throws {
+        guard store.authorizationStatus(for: HKQuantityType(.bodyMass)) != .notDetermined else {
+            throw STError.healthKitAccessNotDetermined
+        }
+        
         let today = calendar.startOfDay(for: .now)
         guard let endDate = calendar.date(byAdding: .day, value: 1, to: today) else {
             fatalError("Failed creating endDate")
@@ -143,13 +165,26 @@ final class HealthKitManager {
                     value: stat.mostRecentQuantity()?.doubleValue(for: .pound()) ?? 0
                 )
             }
-        } catch let error {
-            // Properly Handle
-            fatalError(error.localizedDescription)
+        } catch HKError.errorNoData {
+            throw STError.noData
+        } catch {
+            throw STError.failedCompletingRequest
         }
     }
     
-    func addStepData(for date: Date, value: Double) async  {
+    func addStepData(for date: Date, value: Double) async throws {
+        switch store.authorizationStatus(for: HKQuantityType(.stepCount)) {
+        case .notDetermined:
+            throw STError.healthKitAccessNotDetermined
+        case .sharingDenied:
+            throw STError.sharingDenied(quantityType: "Step Count")
+        case .sharingAuthorized:
+            break
+        @unknown default:
+            break
+        }
+        
+        
         let stepQuantity = HKQuantity(unit: .count(), doubleValue: value)
         let stepSample = HKQuantitySample(
             type: .init(.stepCount),
@@ -158,11 +193,25 @@ final class HealthKitManager {
             end: date
         )
         
-        // TODO: Properly handle errors
-        try! await store.save(stepSample)
+        do {
+            try await store.save(stepSample)
+        } catch {
+            throw STError.failedCompletingRequest
+        }
     }
     
-    func addWeightData(for date: Date, value: Double) async {
+    func addWeightData(for date: Date, value: Double) async throws {
+        switch store.authorizationStatus(for: HKQuantityType(.bodyMass)) {
+        case .notDetermined:
+            throw STError.healthKitAccessNotDetermined
+        case .sharingDenied:
+            throw STError.sharingDenied(quantityType: "Body Weight")
+        case .sharingAuthorized:
+            break
+        @unknown default:
+            break
+        }
+        
         let weightQuantity = HKQuantity(unit: .pound(), doubleValue: value)
         let weightSample = HKQuantitySample(
             type: .init(.bodyMass),
@@ -171,7 +220,10 @@ final class HealthKitManager {
             end: date
         )
         
-        // TODO: Properly handle errors
-        try! await store.save(weightSample)
+        do {
+            try await store.save(weightSample)
+        } catch {
+            throw STError.failedCompletingRequest
+        }
     }
 }

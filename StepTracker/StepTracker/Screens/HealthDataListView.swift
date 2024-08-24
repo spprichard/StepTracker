@@ -89,15 +89,15 @@ struct HealthDataListView: View {
                                     for: dateToAdd,
                                     value: Double(valueToAdd)!
                                 )
-                                await hkManager.fetchStepCount()
+                                try await hkManager.fetchStepCount()
                                 isShowingSheet = false
                             case .weight:
                                 await hkManager.addWeightData(
                                     for: dateToAdd,
                                     value: Double(valueToAdd)!
                                 )
-                                await hkManager.fetchWeight()
-                                await hkManager.fetchWeightDiffs()
+                                try await hkManager.fetchWeight()
+                                try await hkManager.fetchWeightDiffs()
                                 isShowingSheet = false
                             case .workouts:
                                 // TODO: Implement
