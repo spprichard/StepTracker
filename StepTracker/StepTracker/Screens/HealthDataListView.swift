@@ -13,6 +13,9 @@ struct HealthDataListView: View {
     @Environment(HealthKitManager.self)
     private var hkManager
     
+    @Binding
+    var isShowingPermissionPriming: Bool
+    
     @State
     private var isShowingSheet = false
     
@@ -21,7 +24,7 @@ struct HealthDataListView: View {
     
     @State
     private var valueToAdd = ""
-    
+        
     var data: [HealthMetric] {
         switch metric {
         case .steps:
@@ -85,20 +88,36 @@ struct HealthDataListView: View {
                         Task {
                             switch metric {
                             case .steps:
-                                await hkManager.addStepData(
-                                    for: dateToAdd,
-                                    value: Double(valueToAdd)!
-                                )
-                                try await hkManager.fetchStepCount()
-                                isShowingSheet = false
+                                do {
+                                    try await hkManager.addStepData(
+                                        for: dateToAdd,
+                                        value: Double(valueToAdd)!
+                                    )
+                                    try await hkManager.fetchStepCount()
+                                    isShowingSheet = false
+                                } catch STError.healthKitAccessNotDetermined {
+                                    isShowingPermissionPriming = true
+                                } catch STError.sharingDenied(let quantityType) {
+                                    
+                                } catch {
+                                    
+                                }
                             case .weight:
-                                await hkManager.addWeightData(
-                                    for: dateToAdd,
-                                    value: Double(valueToAdd)!
-                                )
-                                try await hkManager.fetchWeight()
-                                try await hkManager.fetchWeightDiffs()
-                                isShowingSheet = false
+                                do {
+                                    try await hkManager.addWeightData(
+                                        for: dateToAdd,
+                                        value: Double(valueToAdd)!
+                                    )
+                                    try await hkManager.fetchWeight()
+                                    try await hkManager.fetchWeightDiffs()
+                                    isShowingSheet = false
+                                } catch STError.healthKitAccessNotDetermined {
+                                    isShowingPermissionPriming = true
+                                } catch STError.sharingDenied(let quantityType) {
+                                    print("❌ Sharing Denied")
+                                } catch {
+                                    
+                                }
                             case .workouts:
                                 // TODO: Implement
                                 return
@@ -131,14 +150,14 @@ struct HealthDataListView: View {
 
 #Preview("Steps") {
     NavigationStack {
-        HealthDataListView(metric: .steps)
+        HealthDataListView(metric: .steps, isShowingPermissionPriming: .constant(false))
             .environment(HealthKitManager())
     }
 }
 
 #Preview("Weight") {
     NavigationStack {
-        HealthDataListView(metric: .weight)
+        HealthDataListView(metric: .weight, isShowingPermissionPriming: .constant(false))
             .environment(HealthKitManager())
     }
 }

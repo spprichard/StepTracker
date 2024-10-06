@@ -9,9 +9,6 @@ import Charts
 import SwiftUI
 
 struct DashboardView: View {
-    @AppStorage(HealthKitManager.HasSeenPermissionSheetKey)
-    private var hasSeenPermissionSheet = false
-    
     @Environment(HealthKitManager.self)
     private var hkManager
     
@@ -87,21 +84,28 @@ struct DashboardView: View {
                     try await hkManager.fetchStepCount()
                     try await hkManager.fetchWeight()
                     try await hkManager.fetchWeightDiffs()
-                } catch {
+                }
+                catch STError.healthKitAccessNotDetermined {
+                    isShowingPermissionSheet = true
+                }
+                catch STError.noData {
+                    print("❌ No Data")
+                }
+                catch {
                     
                 }
-                isShowingPermissionSheet = !hasSeenPermissionSheet
+                
             }
             .navigationTitle("Dasboard")
             .navigationDestination(for: HealthMetricContext.self) { metric in
-                HealthDataListView(metric: selectedStat)
+                HealthDataListView(metric: selectedStat, isShowingPermissionPriming: $isShowingPermissionSheet)
             }
             .sheet(isPresented: $isShowingPermissionSheet,
                    onDismiss: {
                 // TODO: Fetch Health Data
             },
-                   content: {
-                HealthKitPermissionView(hasSeen: $hasSeenPermissionSheet)
+               content: {
+                HealthKitPermissionView()
             }
             )
         }

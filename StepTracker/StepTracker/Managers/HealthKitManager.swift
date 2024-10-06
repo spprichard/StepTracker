@@ -172,7 +172,7 @@ final class HealthKitManager {
         }
     }
     
-    func addStepData(for date: Date, value: Double) async throws {
+    func addStepData(for date: Date, value: Double) async throws(STError) {
         switch store.authorizationStatus(for: HKQuantityType(.stepCount)) {
         case .notDetermined:
             throw STError.healthKitAccessNotDetermined
@@ -183,7 +183,6 @@ final class HealthKitManager {
         @unknown default:
             break
         }
-        
         
         let stepQuantity = HKQuantity(unit: .count(), doubleValue: value)
         let stepSample = HKQuantitySample(

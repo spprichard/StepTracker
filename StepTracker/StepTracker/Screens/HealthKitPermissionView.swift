@@ -18,10 +18,7 @@ struct HealthKitPermissionView: View {
     
     @State
     private var shouldConnectAppleHealth = false
-    
-    @Binding
-    var hasSeen: Bool
-    
+        
     var body: some View {
         VStack(spacing: 125) {
             VStack(spacing: 16) {
@@ -43,7 +40,6 @@ struct HealthKitPermissionView: View {
             .buttonStyle(.borderedProminent)
             .tint(.pink)
         }
-        .onAppear { hasSeen = true }
         .padding(20)
         .interactiveDismissDisabled()
         .healthDataAccessRequest(
@@ -74,6 +70,6 @@ struct HealthKitPermissionView: View {
 }
 
 #Preview {
-    HealthKitPermissionView(hasSeen: .constant(false))
+    HealthKitPermissionView()
         .environment(HealthKitManager())
 }
